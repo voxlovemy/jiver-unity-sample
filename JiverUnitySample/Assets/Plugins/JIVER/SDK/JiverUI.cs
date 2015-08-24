@@ -120,7 +120,6 @@ public class JiverUI : JiverResponder {
 	void Start() {
 		InitComponents ();
 //		OpenChannelList ();
-		Connect ("jia_test.Unity3d");
 		SelectTab (TAB_MODE.CHANNEL);
 	}
 
@@ -130,7 +129,7 @@ public class JiverUI : JiverResponder {
 		Debug.Log ("Connect to " + channelUrl);
 		ResetContent ();
 		Jiver.Join (channelUrl);
-		Jiver.Connect ();
+		Jiver.Connect (50);
 	}
 
 	void ResetContent() {

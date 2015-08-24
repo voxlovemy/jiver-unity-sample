@@ -48,46 +48,52 @@ extern "C" {
         }
         
         jiveriOS.unityResponder = CreateNSString(responder);
-        [Jiver initWithAppKey:CreateNSString(appId)];
+        [Jiver initAppId:CreateNSString(appId) selectDeviceId:kJiverInitWithIDFV];
         
-        [Jiver setEventHandlerConnectBlock:^(Channel *channel) {
+        [Jiver setEventHandlerConnectBlock:^(JiverChannel *channel) {
             // Connected to JIVER channel
             [jiveriOS sendMessage: @"_OnConnect" andArg: [channel toJson]];
-        } errorBlock:^(int code) {
+        } errorBlock:^(NSInteger code) {
             // Error occured due to bad APP_ID (or other unknown reason)
             [jiveriOS sendMessage: @"_OnError" andArg: [@(code) stringValue]];
-        } messageReceivedBlock:^(Message *message) {
+            
+        } channelLeftBlock:^(JiverChannel *channel) {
+            
+        } messageReceivedBlock:^(JiverMessage *message) {
             // Received a regular chat message
             [jiveriOS sendMessage: @"_OnMessageReceived" andArg: [message toJson]];
-        } systemMessageReceivedBlock:^(SystemMessage *message) {
+            
+        } systemMessageReceivedBlock:^(JiverSystemMessage *message) {
             // Received a system message
             [jiveriOS sendMessage: @"_OnSystemMessageReceived" andArg: [message toJson]];
-        } broadcastMessageReceivedBlock:^(BroadcastMessage *message) {
+            
+        } broadcastMessageReceivedBlock:^(JiverBroadcastMessage *message) {
             // Received a broadcast message
             [jiveriOS sendMessage: @"_OnBroadcastMessageReceived" andArg: [message toJson]];
-        } fileReceivedBlock:^(FileLink *fileLink) {
+            
+        } fileReceivedBlock:^(JiverFileLink *fileLink) {
             // Received a file
             [jiveriOS sendMessage: @"_OnFileReceived" andArg: [fileLink toJson]];
-        } messagingStartedBlock:^(MessagingChannel *channel) {
-            // Callback for [Jiver startMessagingWithUserId:]
-            [jiveriOS sendMessage: @"_OnMessagingStarted" andArg: [channel toJson]];
-        } messagingEndedBlock:^(MessagingChannel *channel) {
-            // Callback for [Jiver endMessagingWithChannelUrl:]
-            [jiveriOS sendMessage: @"_OnMessagingEnded" andArg: [channel toJson]];
-        } readReceivedBlock:^(ReadStatus *status) {
-            // Callback for read status changes
-            [jiveriOS sendMessage: @"_OnReadReceived" andArg: [status toJson]];
-        } typeStartReceivedBlock:^(TypeStatus *status) {
-            // Callback for type status changes
-            [jiveriOS sendMessage: @"_OnTypeStartReceived" andArg: [status toJson]];
-        } typeEndReceivedBlock:^(TypeStatus *status) {
-            // Callback for type status changes
-            [jiveriOS sendMessage: @"_OnTypeEndReceived" andArg: [status toJson]];
-        } messagesLoadedBlock:^(int count) {
-            // Callback for [Jiver loadMoreMessagesWithLimit:]
-            [jiveriOS sendMessage: @"_OnMessagesLoaded" andArg: [@(count) stringValue]];
+            
+        } messagingStartedBlock:^(JiverMessagingChannel *channel) {
+            
+        } messagingUpdatedBlock:^(JiverMessagingChannel *channel) {
+            
+        } messagingEndedBlock:^(JiverMessagingChannel *channel) {
+            
+        } messagingHiddenBlock:^(JiverMessagingChannel *channel) {
+            
+        } readReceivedBlock:^(JiverReadStatus *status) {
+            
+        } typeStartReceivedBlock:^(JiverTypeStatus *status) {
+            
+        } typeEndReceivedBlock:^(JiverTypeStatus *status) {
+            
+        } allDataReceivedBlock:^(NSUInteger jiverDataType, int count) {
+            
+        } messageDeliveryBlock:^(BOOL send, NSString *message, NSString *data, NSString *messageId) {
+            
         }];
-        
     }
     
     void _Jiver_iOS_Login(const char* uuid, const char* nickname)
@@ -100,9 +106,35 @@ extern "C" {
         [Jiver joinChannel:CreateNSString(channelUrl)];
     }
     
-    void _Jiver_iOS_Connect ()
+    void _Jiver_iOS_Connect (int prevMessageLimit)
     {
-        [Jiver connect];
+        //        [Jiver connect];
+        [[Jiver queryMessageListInChannel:[Jiver getChannelUrl]] prevWithMessageTs:LLONG_MAX andLimit:prevMessageLimit resultBlock:^(NSMutableArray *queryResult) {
+            long long mMaxMessageTs = LLONG_MIN;
+            for (JiverMessageModel *model in queryResult) {
+                if (mMaxMessageTs < [model getMessageTimestamp]) {
+                    mMaxMessageTs = [model getMessageTimestamp];
+                }
+                if ([model isKindOfClass: [JiverMessage class]]) {
+                    [jiveriOS sendMessage: @"_OnMessageReceived" andArg: [(JiverMessage*)model toJson]];
+                }
+                else if ([model isKindOfClass: [JiverSystemMessage class]]) {
+                    [jiveriOS sendMessage: @"_OnSystemMessageReceived" andArg: [(JiverSystemMessage*)
+                                                                                model toJson]];
+                }
+                else if ([model isKindOfClass: [JiverBroadcastMessage class]]) {
+                    [jiveriOS sendMessage: @"_OnBroadcastMessageReceived" andArg: [(JiverBroadcastMessage*)model toJson]];
+                }
+                else if ([model isKindOfClass: [JiverFileLink class]]) {
+                    [jiveriOS sendMessage: @"_OnFileReceived" andArg: [(JiverFileLink*)model toJson]];
+                }
+                
+            }
+            
+            [Jiver connectWithMessageTs:mMaxMessageTs];
+        } endBlock:^(NSError *error) {
+            
+        }];
     }
     
     void _Jiver_iOS_Disconnect ()
@@ -112,10 +144,10 @@ extern "C" {
     
     void _Jiver_iOS_QueryChannelListForUnity ()
     {
-        ChannelListQuery* query = [Jiver queryChannelListForUnity];
+        JiverChannelListQuery* query = [Jiver queryChannelListForUnity];
         [query nextWithResultBlock:^(NSMutableArray *queryResult) {
             NSMutableArray* jsonArray = [NSMutableArray array];
-            for (Channel* channel in queryResult) {
+            for (JiverChannel* channel in queryResult) {
                 [jsonArray addObject:[channel toJson]];
             }
             

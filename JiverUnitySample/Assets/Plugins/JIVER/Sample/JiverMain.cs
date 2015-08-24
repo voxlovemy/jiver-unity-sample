@@ -11,7 +11,7 @@ public class JiverMain : MonoBehaviour {
 		Jiver.Init (appId);
 		Jiver.Login (userId, userName);
 		Jiver.Join (channelUrl);
-		Jiver.Connect ();
+		Jiver.Connect (50);
 	}
 	
 	void Update () {

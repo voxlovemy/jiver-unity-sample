@@ -46,7 +46,7 @@ public class Jiver : MonoBehaviour {
 		void Init (string appId, string responder);
 		void Login (string uuid, string nickname);
 		void Join (string channelUrl);
-		void Connect ();
+		void Connect (int prevMessageLimit);
 		void Disconnect ();
 		void QueryChannelList();
 		void SendMessage(string message);
@@ -263,7 +263,7 @@ public class Jiver : MonoBehaviour {
 
 	void OnEnable() {
 		if (connected) {
-			Connect ();
+			Connect (0);
 		}
 
 	}
@@ -307,9 +307,9 @@ public class Jiver : MonoBehaviour {
 		GetInstance ().SendMessage (message.TrimEnd(CHARS_TO_TRIM));
 	}
 
-	public static void Connect() {
+	public static void Connect(int prevMessageLimit) {
 		connected = true;
-		GetInstance().Connect ();
+		GetInstance().Connect (prevMessageLimit);
 	}
 	
 	public static void Disconnect() {
@@ -348,7 +348,7 @@ public class Jiver : MonoBehaviour {
 			Debug.Log ("Join: " + channelUrl);
 			Debug.Log ("JIVER runs on Test mode.");
 		}
-		public void Connect () {
+		public void Connect (int prevMessageLimit) {
 			Debug.Log ("Connect...");
 			Debug.Log ("JIVER runs on Test mode.");
 		}
@@ -393,8 +393,8 @@ public class Jiver : MonoBehaviour {
 			jiverClass.CallStatic ("join", channelUrl);
 		}
 
-		public void Connect() {
-			jiverClass.CallStatic ("connect");
+		public void Connect(int prevMessageLimit) {
+			jiverClass.CallStatic ("connectForUnity", prevMessageLimit);
 		}
 
 		public void Disconnect() {
@@ -430,7 +430,7 @@ public class Jiver : MonoBehaviour {
 	private static extern void _Jiver_iOS_Join (string channelUrl);
 
 	[DllImport ("__Internal")]
-	private static extern void _Jiver_iOS_Connect ();
+	private static extern void _Jiver_iOS_Connect (int prevMessageLimit);
 
 	[DllImport ("__Internal")]
 	private static extern void _Jiver_iOS_Disconnect ();
@@ -457,8 +457,8 @@ public class Jiver : MonoBehaviour {
 			_Jiver_iOS_Join (channelUrl);
 		}
 		
-		public void Connect() {
-			_Jiver_iOS_Connect ();
+		public void Connect(int prevMessageLimit) {
+			_Jiver_iOS_Connect (prevMessageLimit);
 		}
 		
 		public void Disconnect() {
