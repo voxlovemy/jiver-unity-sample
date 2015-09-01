@@ -108,33 +108,38 @@ extern "C" {
     
     void _Jiver_iOS_Connect (int prevMessageLimit)
     {
-        //        [Jiver connect];
-        [[Jiver queryMessageListInChannel:[Jiver getChannelUrl]] prevWithMessageTs:LLONG_MAX andLimit:prevMessageLimit resultBlock:^(NSMutableArray *queryResult) {
-            long long mMaxMessageTs = LLONG_MIN;
-            for (JiverMessageModel *model in queryResult) {
-                if (mMaxMessageTs < [model getMessageTimestamp]) {
-                    mMaxMessageTs = [model getMessageTimestamp];
-                }
-                if ([model isKindOfClass: [JiverMessage class]]) {
-                    [jiveriOS sendMessage: @"_OnMessageReceived" andArg: [(JiverMessage*)model toJson]];
-                }
-                else if ([model isKindOfClass: [JiverSystemMessage class]]) {
-                    [jiveriOS sendMessage: @"_OnSystemMessageReceived" andArg: [(JiverSystemMessage*)
-                                                                                model toJson]];
-                }
-                else if ([model isKindOfClass: [JiverBroadcastMessage class]]) {
-                    [jiveriOS sendMessage: @"_OnBroadcastMessageReceived" andArg: [(JiverBroadcastMessage*)model toJson]];
-                }
-                else if ([model isKindOfClass: [JiverFileLink class]]) {
-                    [jiveriOS sendMessage: @"_OnFileReceived" andArg: [(JiverFileLink*)model toJson]];
+        if (prevMessageLimit <= 0) {
+            [Jiver connectWithMessageTs: (long long)[[NSDate date] timeIntervalSince1970] * 1000];
+        } else {
+            [[Jiver queryMessageListInChannel:[Jiver getChannelUrl]] prevWithMessageTs:LLONG_MAX andLimit:prevMessageLimit resultBlock:^(NSMutableArray *queryResult) {
+                long long mMaxMessageTs = LLONG_MIN;
+                for (JiverMessageModel *model in queryResult) {
+                    if (mMaxMessageTs < [model getMessageTimestamp]) {
+                        mMaxMessageTs = [model getMessageTimestamp];
+                    }
+                    if ([model isKindOfClass: [JiverMessage class]]) {
+                        [jiveriOS sendMessage: @"_OnMessageReceived" andArg: [(JiverMessage*)model toJson]];
+                    }
+                    else if ([model isKindOfClass: [JiverSystemMessage class]]) {
+                        [jiveriOS sendMessage: @"_OnSystemMessageReceived" andArg: [(JiverSystemMessage*)
+                                                                                    model toJson]];
+                    }
+                    else if ([model isKindOfClass: [JiverBroadcastMessage class]]) {
+                        [jiveriOS sendMessage: @"_OnBroadcastMessageReceived" andArg: [(JiverBroadcastMessage*)model toJson]];
+                    }
+                    else if ([model isKindOfClass: [JiverFileLink class]]) {
+                        [jiveriOS sendMessage: @"_OnFileReceived" andArg: [(JiverFileLink*)model toJson]];
+                    }
+                    
                 }
                 
-            }
+                [Jiver connectWithMessageTs:mMaxMessageTs];
+            } endBlock:^(NSError *error) {
+                
+            }];
             
-            [Jiver connectWithMessageTs:mMaxMessageTs];
-        } endBlock:^(NSError *error) {
-            
-        }];
+        }
+        
     }
     
     void _Jiver_iOS_Disconnect ()
